@@ -102,7 +102,8 @@ else
   libdir = path.join(builddir, "lib", "%{cfg.buildcfg}");
 end
 
-gendir = path.join(builddir, "gen");
+-- a bug in premake resolves %{cfg.buildcfg} incorrectly at a certain time so it must be hard-coded
+gendir = path.join(builddir, "lib", "Release_%{cfg.platform}");
 
 msvc_buildflags = { "/wd4267" }
 
