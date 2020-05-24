@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Linq;
+using System.Threading;
 using CppSharp.AST;
 
 namespace CppSharp.Passes
@@ -56,10 +57,10 @@ namespace CppSharp.Passes
             if (!Options.CheckSymbols || Options.IsCLIGenerator)
                 return false;
 
-            if (decl.IsDependent)
+            var @class = decl.Namespace as Class;
+            if (@class?.IsDependent == true)
             {
-                var @class = decl.Namespace as Class;
-                if (@class != null && @class.IsDependent)
+                if (decl is Method)
                 {
                     foreach (var specialization in @class.Specializations)
                     {
@@ -69,6 +70,19 @@ namespace CppSharp.Passes
                             CheckForSymbol(specializedFunction))
                             return true;
                     }
+                    return false;
+                }
+                if (decl is Variable)
+                {
+                    foreach (var specialization in @class.Specializations)
+                    {
+                        var specializedFunction = specialization.Variables.First(
+                            v => v.Name == decl.Name);
+                        if (specializedFunction != null &&
+                            CheckForSymbol(specializedFunction))
+                            return true;
+                    }
+                    return false;
                 }
             }
             return CheckForSymbol(decl);

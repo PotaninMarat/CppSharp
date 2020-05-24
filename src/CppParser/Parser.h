@@ -52,9 +52,10 @@ class Parser
 public:
     Parser(CppParserOptions* Opts);
 
-    void Setup();
+    void Setup(bool compileStd);
     ParserResult* Parse(const std::vector<std::string>& SourceFiles);
     static ParserResult* ParseLibrary(const LinkerOptions* Opts);
+    ParserResult* Build(const LinkerOptions* LinkerOptions, const std::string& File, bool Last);
 
     void WalkAST(clang::TranslationUnitDecl* TU);
     void HandleDeclaration(const clang::Decl* D, Declaration* Decl);

@@ -29,8 +29,8 @@ namespace CppSharp.Utils
             options.OutputDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             options.Quiet = true;
             options.GenerateDebugOutput = true;
+            options.CheckSymbols = true;
             var testModule = options.AddModule(name);
-            testModule.SharedLibraryName = $"{name}.Native";
 
             Diagnostics.Message("");
             Diagnostics.Message("Generating bindings for {0} ({1})",
@@ -42,7 +42,9 @@ namespace CppSharp.Utils
 
             var path = Path.GetFullPath(GetTestsDirectory(name));
             testModule.IncludeDirs.Add(path);
-            testModule.Defines.Add("DLL_EXPORT");
+            testModule.LibraryDirs.Add(options.OutputDir);
+            // TODO: properly handle extensions
+            testModule.Libraries.Add($"{name}.Native");
 
             Diagnostics.Message("Looking for tests in: {0}", path);
             var files = Directory.EnumerateFiles(path, "*.h");
