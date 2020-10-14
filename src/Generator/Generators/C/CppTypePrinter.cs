@@ -21,6 +21,7 @@ namespace CppSharp.Generators.C
         public bool PrintTypeQualifiers { get; set; }
         public bool PrintTypeModifiers { get; set; }
         public bool PrintVariableArrayAsPointers { get; set; }
+        public TypePrintScopeKind MethodScopeKind = TypePrintScopeKind.Qualified;
 
         public CppTypePrinter(BindingContext context) : base(TypePrinterContextKind.Native)
         {
@@ -522,11 +523,23 @@ namespace CppSharp.Generators.C
             var functionType = method.FunctionType.Type.Desugar() as FunctionType;
             if (functionType == null)
                 return string.Empty;
-            var returnType = method.IsConstructor || method.IsDestructor ||
+            var @return = method.IsConstructor || method.IsDestructor ||
                 method.OperatorKind == CXXOperatorKind.Conversion ||
                 method.OperatorKind == CXXOperatorKind.ExplicitConversion ?
-                string.Empty : $"{method.OriginalReturnType.Visit(this)} ";
-            var @class = method.Namespace.Visit(this);
+                new TypePrinterResult() : method.OriginalReturnType.Visit(this);
+            string @class;
+            switch (MethodScopeKind)
+            {
+                case TypePrintScopeKind.Qualified:
+                    @class = $"{method.Namespace.Visit(this)}::";
+                    break;
+                case TypePrintScopeKind.GlobalQualified:
+                    @class = $"::{method.Namespace.Visit(this)}::";
+                    break;
+                default:
+                    @class = string.Empty;
+                    break;
+            }
             var @params = string.Join(", ", method.Parameters.Select(p => p.Visit(this)));
             var @const = (method.IsConst ? " const" : string.Empty);
             var name = method.OperatorKind == CXXOperatorKind.Conversion ||
@@ -551,7 +564,12 @@ namespace CppSharp.Generators.C
                     exceptionType = string.Empty;
                     break;
             }
-            return $"{returnType}{@class}::{name}({@params}){@const}{exceptionType}";
+
+            if (!string.IsNullOrEmpty(@return.Type))
+                @return.NamePrefix.Append(' ');
+            @return.NamePrefix.Append(@class).Append(name).Append('(').Append(@params).Append(')');
+            @return.NameSuffix.Append(@const).Append(exceptionType);
+            return @return.ToString();
         }
 
         public override TypePrinterResult VisitParameterDecl(Parameter parameter)
@@ -588,10 +606,8 @@ namespace CppSharp.Generators.C
             return VisitDeclaration(item);
         }
 
-        public override TypePrinterResult VisitVariableDecl(Variable variable)
-        {
-            return VisitDeclaration(variable);
-        }
+        public override TypePrinterResult VisitVariableDecl(Variable variable) =>
+            $"{variable.Type.Visit(this)} {VisitDeclaration(variable)}";
 
         public override TypePrinterResult VisitClassTemplateDecl(ClassTemplate template)
         {
